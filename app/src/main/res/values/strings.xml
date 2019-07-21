@@ -1,3 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
 <resources>
-    <string name="app_name">ebook_reader</string>
+    <string name="app_name">书架</string>
+    <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
+    <string name="user_center">用户中心</string>
+    <string name="book_source_manage">书源管理</string>
+    <string name="replace_rule_title">替换净化</string>
+    <string name="action_download">下载任务</string>
+    <string name="welcome">启动页</string>
+
 </resources>
