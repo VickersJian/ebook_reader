@@ -54,7 +54,7 @@ public class AppActivityManager {
     }
 
     /**
-     * 移除Activity
+     * 移除Activity(Class)
      */
     public void remove(Class<?> activityClass) {
         for (Iterator<WeakReference<Activity>> iterator = activities.iterator(); iterator.hasNext(); ) {

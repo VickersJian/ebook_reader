@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--from EditorInfo-->
+    <integer name="IME_ACTION_DONE">0x00000006</integer>
+    <!--My Action Code-->
+    <!--登录-->
+    <item type="integer" name="ACTION_SIGN_IN" format="integer">1001</item>
+    <!--注册-->
+    <integer name="ACTION_SIGN_UP">1002</integer>
+</resources>
