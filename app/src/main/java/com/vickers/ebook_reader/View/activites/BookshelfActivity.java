@@ -185,11 +185,15 @@ public class BookshelfActivity extends mBaseActivity {
         }
         if (requestCode == FILE_SELECT_CODE) {
             Uri uri = data.getData();
-            final String filePath = uri != null ? uri.getPath() : null;
-            Log.i(TAG, "onActivityResult: " + filePath);
-            if (filePath != null) {
-                new AddBookAsyncTask(userEntityDao,BookshelfActivity.this,displayBookList)
-                        .execute(filePath);
+            if (uri.getPath() != null && uri.getPath().endsWith(".epub")) {
+                final String filePath = uri.getPath();
+                Log.i(TAG, "onActivityResult: " + filePath);
+                if (filePath != null) {
+                    new AddBookAsyncTask(userEntityDao, BookshelfActivity.this, displayBookList)
+                            .execute(filePath);
+                }
+            }else{
+                Toast.makeText(this, "仅支持.epub类型的电子书", Toast.LENGTH_SHORT).show();
             }
             super.onActivityResult(requestCode, resultCode, data);
         }
@@ -259,10 +263,10 @@ public class BookshelfActivity extends mBaseActivity {
         private Context context;
         private MutableLiveData<List<LibraryBookEntity>> displayBookList;
 
-        public AddBookAsyncTask(UserEntityDao userEntityDao, Context context,MutableLiveData<List<LibraryBookEntity>> displayBookList) {
+        public AddBookAsyncTask(UserEntityDao userEntityDao, Context context, MutableLiveData<List<LibraryBookEntity>> displayBookList) {
             this.userEntityDao = userEntityDao;
-            this.context=context;
-            this.displayBookList=displayBookList;
+            this.context = context;
+            this.displayBookList = displayBookList;
         }
 
         @Override
@@ -281,7 +285,7 @@ public class BookshelfActivity extends mBaseActivity {
         @Override
         protected Result doInBackground(String... strings) {
             try {
-                String filePath=strings[0];
+                String filePath = strings[0];
                 EpubReader epubReader = new EpubReader();
                 InputStream in = new FileInputStream(new File(filePath));
                 Book book = epubReader.readEpub(in);
