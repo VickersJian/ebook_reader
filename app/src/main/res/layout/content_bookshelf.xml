@@ -15,7 +15,8 @@
         <android.support.design.widget.AppBarLayout
             android:id="@+id/action_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
 
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
@@ -27,7 +28,7 @@
                 <android.support.v7.widget.CardView
                     android:id="@+id/card_search"
                     android:layout_width="match_parent"
-                    android:layout_height="30dp"
+                    android:layout_height="35dp"
                     android:clickable="true"
                     android:focusable="true"
                     app:cardElevation="0dp">
@@ -48,6 +49,13 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="?attr/actionBarSize"
-            android:splitMotionEvents="false"/>
+            android:splitMotionEvents="false">
+        </android.support.v7.widget.RecyclerView>
+        <ProgressBar
+            android:id="@+id/loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="invisible"/>
     </android.support.design.widget.CoordinatorLayout>
 </LinearLayout>

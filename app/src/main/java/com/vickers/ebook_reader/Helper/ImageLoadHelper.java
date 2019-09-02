@@ -9,6 +9,11 @@ import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.widget.ImageView;
 
+import com.vickers.ebook_reader.data.Result;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -29,16 +34,16 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
     public static final int MOD_KEEP = 0;
     public static final int MOD_LIMITE = 1;
 
-    private K key;
-    private V imageView;
-    private D data;
+//    private K key;
+//    private V imageView;
+//    private D data;
     private LoadTask mLoadTask;
     private LruCache<K, Bitmap> mMemoryCache;
     private int reqWidth;
     private int reqHeight;
     private int MOD;
 
-    public ImageLoadHelper(int reqWidth, int reqHeight, int MOD) {
+    public ImageLoadHelper(final int reqWidth, final int reqHeight, int MOD) {
         this.reqHeight = reqHeight;
         this.reqWidth = reqWidth;
         this.MOD = MOD;
@@ -65,7 +70,7 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
      *                  MOD_LIMITE 取(原宽度/指定宽度)和(原高度/指定高度)中比例最大的压缩
      * @return 压缩后的图片
      */
-    public static <E> Bitmap decodeSampledBitmapFromByte(Context context, E data, int reqWidth, int reqHeight, int MOD) {
+    public static <E> Bitmap decodeSampledBitmap(Context context, E data, int reqWidth, int reqHeight, int MOD) {
         // 第一次解析将inJustDecodeBounds设置为true，来获取图片大小
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
@@ -75,10 +80,26 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
             options.inJustDecodeBounds = false;
             return BitmapFactory.decodeResource(context.getResources(), (int) data, options);
         } else if (data instanceof InputStream) {
-            BitmapFactory.decodeStream((InputStream) data, null, options);
+            InputStream inputStream= (InputStream) data;
+            ByteArrayOutputStream copy = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            try {
+                while ((len = inputStream.read(buffer)) > -1 ) {
+                    copy.write(buffer, 0, len);
+                }
+                copy.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            InputStream toCalculate = new ByteArrayInputStream(copy.toByteArray());
+            InputStream toReturn = new ByteArrayInputStream(copy.toByteArray());
+            BitmapFactory.decodeStream(toCalculate, null, options);
             options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight, MOD);
             options.inJustDecodeBounds = false;
-            return BitmapFactory.decodeStream((InputStream) data, null, options);
+            Bitmap bitmap= BitmapFactory.decodeStream(toReturn, null, options);
+            Log.i(TAG, "decodeSampledBitmap: "+options.inSampleSize);
+            return bitmap;
         } else if (data instanceof String) {
             BitmapFactory.decodeFile((String) data, options);
             options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight, MOD);
@@ -129,10 +150,12 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
     public void loadBitmap(K key, D data, V imageView) {
         final Bitmap bitmap = getBitmapFromMemCache(key);
         if (bitmap != null) {
+            Log.i(TAG, "loadBitmap: " + "old");
             imageView.setImageBitmap(bitmap);
         } else {
             BitmapLoadTask<K, D, V> bitmapLoadTask = new BitmapLoadTask(mLoadTask, this, key, imageView, reqWidth, reqHeight, MOD);
             bitmapLoadTask.execute(data);
+            Log.i(TAG, "loadBitmap: " + "new");
         }
     }
 
@@ -160,14 +183,22 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
 
 
     public interface LoadTask {
-        <D> Bitmap ImageLoadTask(D... data);
+        void onPreExecute();
+
+        <D> Result doInBackground(D... data);
+
+        void onPostExecute(Result result);
     }
 
     /**
      * 设置图片加载方式
-     * 默认加载方式将会失效
+     * 返回null则为默认加载方式
+     * 否则默认加载方式将会失效
+     * <p>
+     * K--缓存键值类型<p>
+     * D--图片来源类型<p>
      */
-    public void setImageLoadTask(LoadTask loadTask) {
+    public void setImageLoadAsyncTask(LoadTask loadTask) {
         this.mLoadTask = loadTask;
     }
 
@@ -178,7 +209,7 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
      * D 图片来源类型<p>
      * V 显示图片的控件类型
      */
-    private static class BitmapLoadTask<K, D, V extends ImageView> extends AsyncTask<D, Void, Bitmap> {
+    private static class BitmapLoadTask<K, D, V extends ImageView> extends AsyncTask<D, Void, Result> {
         private LoadTask mLoadTask;
         private K key;
         private V imageView;
@@ -198,17 +229,27 @@ public class ImageLoadHelper<K, D, V extends ImageView> {
         }
 
         @Override
-        protected Bitmap doInBackground(D... data) {
-            if (mLoadTask == null)
-                return decodeSampledBitmapFromByte(null, data[0], reqWidth, reqHeight, MOD);
-            else
-                return mLoadTask.ImageLoadTask(data);
+        protected void onPreExecute() {
+            mLoadTask.onPreExecute();
         }
 
         @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            imageView.setImageBitmap(bitmap);
-            imageLoadHelper.addBitmapToMemoryCache(key, bitmap);
+        protected Result doInBackground(D... data) {
+            if(mLoadTask.doInBackground(data)==null)
+                return new Result.Success<>(decodeSampledBitmap(null,data[0],reqWidth,reqHeight,MOD));
+            else return mLoadTask.doInBackground(data);
+        }
+
+        @Override
+        protected void onPostExecute(Result result) {
+            mLoadTask.onPostExecute(result);
+            if (result instanceof Result.Success) {
+                if (((Result.Success) result).getData() instanceof Bitmap) {
+                    Bitmap bitmap = (Bitmap) ((Result.Success) result).getData();
+                    imageView.setImageBitmap(bitmap);
+                    imageLoadHelper.addBitmapToMemoryCache(key, bitmap);
+                }
+            }
         }
     }
 }

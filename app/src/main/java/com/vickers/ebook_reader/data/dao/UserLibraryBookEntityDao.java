@@ -10,7 +10,9 @@ import com.vickers.ebook_reader.data.entity.UserLibraryBookEntity;
 
 import org.litepal.LitePal;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.vickers.ebook_reader.data.dao.LibraryBookEntityDao.findBook;
@@ -41,7 +43,7 @@ public class UserLibraryBookEntityDao {
      */
     public static Result<UserLibraryBookEntity> addUserLibraryBookEntity(UserEntity user, LibraryBookEntity book) {
         if (findUserLibraryBookEntity(user, book) == null) {
-            UserLibraryBookEntity userLibraryBookEntity = new UserLibraryBookEntity(user, book);
+            UserLibraryBookEntity userLibraryBookEntity = new UserLibraryBookEntity(user, book,0,getDate());
             try {
                 userLibraryBookEntity.saveThrows();
             } catch (Exception e) {
@@ -140,7 +142,7 @@ public class UserLibraryBookEntityDao {
     public void addBook(List<LibraryBookEntity> bookList) {
         List<UserLibraryBookEntity> userLibraryBookEntityList = new ArrayList<>();
         for (LibraryBookEntity book : bookList) {
-            userLibraryBookEntityList.add(new UserLibraryBookEntity(user, book));
+            userLibraryBookEntityList.add(new UserLibraryBookEntity(user, book,0,getDate()));
         }
         addUserLibraryBookEntity(userLibraryBookEntityList);
     }
@@ -153,5 +155,9 @@ public class UserLibraryBookEntityDao {
 
     public void setProgress(int progress) {
         userLibraryBookEntity.setBookRateOfProgress(progress);
+    }
+
+    private static Date getDate(){
+        return new Date(System.currentTimeMillis());
     }
 }

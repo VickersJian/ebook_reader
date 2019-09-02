@@ -70,13 +70,13 @@ public class UserLoginActivity extends mBaseActivity {
 
     @Override
     protected void bindView() {
-        btn_signIn = (Button) findViewById(R.id.btn_login);
-        text_SignUp = (TextView) findViewById(R.id.text_sign_up);
-        edt_userId = (EditText) findViewById(R.id.edt_userId);
-        edt_password = (EditText) findViewById(R.id.edt_password);
-        checkBox_remenber_password = (CheckBox) findViewById(R.id.checkbox_remember_password);
-        checkBox_auto_login = (CheckBox) findViewById(R.id.checkbox_auto_login);
-        progressBar = (ProgressBar) findViewById(R.id.progressbar_loading);
+        btn_signIn = findById(R.id.btn_login);
+        text_SignUp = findById(R.id.text_sign_up);
+        edt_userId = findById(R.id.edt_userId);
+        edt_password = findById(R.id.edt_password);
+        checkBox_remenber_password = findById(R.id.checkbox_remember_password);
+        checkBox_auto_login = findById(R.id.checkbox_auto_login);
+        progressBar = findById(R.id.progressbar_loading);
     }
 
     @Override

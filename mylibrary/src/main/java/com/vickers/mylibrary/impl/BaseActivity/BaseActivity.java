@@ -71,4 +71,9 @@ public abstract class BaseActivity extends SwipeBackActivity {
         startActivity(intent);
         overridePendingTransition(animIn, animExit);
     }
+
+    protected void startActivityForResultByAnim(Intent intent, int requestCode,int animIn, int animExit){
+        startActivityForResult(intent,requestCode);
+        overridePendingTransition(animIn, animExit);
+    }
 }

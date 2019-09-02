@@ -1,12 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/side_nav_bar"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/logout"
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_alignParentTop="true">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:text="@string/user_center"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginEnd="60dp"/>
+    </android.support.v7.widget.Toolbar>
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/til_userId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/toolbar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="120dp"
+
+        android:hint="@string/userId">
+
+        <EditText
+            android:id="@+id/edt_userId"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:enabled="false" />
+    </android.support.design.widget.TextInputLayout>
+
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/til_dispalyname"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/til_userId"
+        android:layout_centerHorizontal="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+
+        android:hint="@string/displayName_short">
+
+        <EditText
+            android:id="@+id/edt_dispalyname"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:enabled="false" />
+
+    </android.support.design.widget.TextInputLayout>
+
+
+    <android.support.design.widget.TextInputLayout
+        android:id="@+id/til_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/til_dispalyname"
+        android:layout_centerHorizontal="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="10dp"
+
+        android:hint="@string/password">
+
+        <EditText
+            android:id="@+id/edt_password"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:enabled="false"
+            android:inputType="textPassword" />
+
+    </android.support.design.widget.TextInputLayout>
+
+    <android.support.v7.widget.CardView
+        android:id="@+id/edit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/logout"/>
+        android:layout_below="@+id/til_password"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        app:cardBackgroundColor="#21C4C4"
+        app:cardCornerRadius="5dp"
+        app:cardElevation="5dp">
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:layout_marginBottom="3dp"
+            android:gravity="center"
+            android:text="@string/edit"
+            android:textColor="#fff"
+            android:textSize="15sp"
+            android:textStyle="normal"
+            android:typeface="sans" />
+    </android.support.v7.widget.CardView>
+
+    <android.support.v7.widget.CardView
+        android:id="@+id/save"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/til_password"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:visibility="gone"
+        app:cardBackgroundColor="#21C4C4"
+        app:cardCornerRadius="5dp"
+        app:cardElevation="5dp">
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:layout_marginBottom="3dp"
+            android:gravity="center"
+            android:text="@string/save_short"
+            android:textColor="#fff"
+            android:textSize="15sp"
+            android:textStyle="normal"
+            android:typeface="sans" />
+    </android.support.v7.widget.CardView>
+
+    <android.support.v7.widget.CardView
+        android:id="@+id/cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/til_password"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:layout_toStartOf="@+id/save"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:visibility="gone"
+        app:cardBackgroundColor="#21C4C4"
+        app:cardCornerRadius="5dp"
+        app:cardElevation="5dp">
+
+        <TextView
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:layout_marginBottom="3dp"
+            android:gravity="center"
+            android:text="@string/cancel"
+            android:textColor="#fff"
+            android:textSize="15sp"
+            android:textStyle="normal"
+            android:typeface="sans" />
+    </android.support.v7.widget.CardView>
+
+    <android.support.v7.widget.CardView
+        android:id="@+id/logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        app:cardBackgroundColor="#E91E63"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="10dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginBottom="3dp"
+            android:gravity="center"
+            android:text="@string/logout"
+            android:textColor="#fff"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:typeface="sans" />
+    </android.support.v7.widget.CardView>
 </RelativeLayout>

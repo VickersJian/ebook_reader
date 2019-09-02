@@ -5,4 +5,20 @@
     <item
         android:id="@+id/menu_add_book"
         android:title="@string/add_book" />
+    <item android:title="@string/order_way">
+        <menu>
+            <item
+                android:id="@+id/menu_time_order_desc"
+                android:title="@string/time_order_desc" />
+            <item
+                android:id="@+id/menu_time_order_asc"
+                android:title="@string/time_order_asc" />
+            <item
+                android:id="@+id/menu_file_order_desc"
+                android:title="@string/file_order_desc" />
+            <item
+                android:id="@+id/menu_file_order_asc"
+                android:title="@string/file_order_asc" />
+        </menu>
+    </item>
 </menu>

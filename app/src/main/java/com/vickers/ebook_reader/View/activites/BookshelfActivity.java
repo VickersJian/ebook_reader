@@ -8,6 +8,7 @@ import android.arch.lifecycle.Observer;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -18,14 +19,17 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
+
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.jaeger.library.StatusBarUtil;
@@ -33,31 +37,33 @@ import com.vickers.ebook_reader.Base.mBaseActivity;
 import com.vickers.ebook_reader.MyApplication;
 import com.vickers.ebook_reader.R;
 
-import com.vickers.ebook_reader.View.adapter.BookShelfViewAdapter;
-import com.vickers.ebook_reader.View.adapter.GridViewAdapter;
+
+import com.vickers.ebook_reader.View.adapter.BookViewAdapter;
 import com.vickers.ebook_reader.View.adapter.base.BaseListAdapter;
 import com.vickers.ebook_reader.data.Result;
+
 import com.vickers.ebook_reader.data.dao.LibraryBookEntityDao;
 import com.vickers.ebook_reader.data.dao.UserEntityDao;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
-import com.vickers.ebook_reader.data.entity.UserEntity;
+
 import com.vickers.ebook_reader.utils.FileUtils;
 import com.vickers.ebook_reader.utils.WidgetUtils;
 
-import org.litepal.LitePal;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+
 import java.io.InputStream;
-import java.util.Arrays;
+
+import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.Comparator;
 
 import nl.siegmann.epublib.domain.Book;
-import nl.siegmann.epublib.domain.MediaType;
 import nl.siegmann.epublib.epub.EpubReader;
-import nl.siegmann.epublib.service.MediatypeService;
+
+import static com.vickers.ebook_reader.data.dao.UserEntityDao.findUserByUserId;
 
 
 /**
@@ -66,20 +72,40 @@ import nl.siegmann.epublib.service.MediatypeService;
 public class BookshelfActivity extends mBaseActivity {
 
     private static final String TAG = "BookshelfActivity";
-
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
-    private InputStream inputStream = null;
+    private View headerView;
+    private TextView displayName;
+    private TextView userId;
+    private ProgressBar progressBar;
     private Toolbar toolbar;
+    private CardView cardViewSearch;
     private RecyclerView recyclerView;
     private UserEntityDao userEntityDao;
-    private BookShelfViewAdapter bookShelfViewAdapter;
+    private BookViewAdapter bookShelfViewAdapter;
+    private List<LibraryBookEntity> userBookList;
     private MutableLiveData<List<LibraryBookEntity>> displayBookList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (MyApplication.getUser() == null) {
+            String userId = MyApplication.getUserPreferences().getString("user", "");
+            MyApplication.setUser(findUserByUserId(userId));
+        }
         super.onCreate(savedInstanceState);
         immersiveStatusBar();
+    }
+
+    @Override
+    protected void onRestart() {
+        Log.i(TAG, "onRestart: ");
+        super.onRestart();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.i(TAG, "onDestroy: ");
+        super.onDestroy();
     }
 
     @Override
@@ -92,31 +118,41 @@ public class BookshelfActivity extends mBaseActivity {
 
     @Override
     protected void bindView() {
+        userId = findById(R.id.userId);
+        displayName = findById(R.id.dispalyname);
         drawerLayout = findById(R.id.drawer_layout);
         navigationView = findById(R.id.nav_view);
+        headerView = navigationView.getHeaderView(0);
+        userId = headerView.findViewById(R.id.userId);
+        displayName = headerView.findViewById(R.id.dispalyname);
         toolbar = findById(R.id.toolbar);
+        cardViewSearch = findById(R.id.card_search);
         setSupportActionBar(toolbar);
         recyclerView = findById(R.id.recyclerview_bookshelf);
+        progressBar = findById(R.id.loading);
+        progressBar.getIndeterminateDrawable().setColorFilter(getResources().getColor(R.color.md_pink_600), PorterDuff.Mode.SRC_ATOP);
+
     }
 
     @Override
     protected void initData() {
+        userId.setTextColor(getResources().getColor(R.color.tv_text_default));
+        userId.setText(MyApplication.getUser().getUserID());
+        displayName.setTextColor(getResources().getColor(R.color.tv_text_default));
+        displayName.setText(MyApplication.getUser().getDispalyName());
         userEntityDao = new UserEntityDao(MyApplication.getUser());
         displayBookList = new MutableLiveData<>();
-        bookShelfViewAdapter = new BookShelfViewAdapter();
+        bookShelfViewAdapter = new BookViewAdapter();
         recyclerView.setAdapter(bookShelfViewAdapter);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);
         recyclerView.setLayoutManager(gridLayoutManager);
-        AsyncTask.execute(new Runnable() {
-            @Override
-            public void run() {
-                displayBookList.postValue(userEntityDao.getLibrary());
-            }
-        });
+        userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+        refreshDisplayBookList();
         displayBookList.observe(this, new Observer<List<LibraryBookEntity>>() {
             @Override
             public void onChanged(@Nullable List<LibraryBookEntity> bookEntityList) {
                 bookShelfViewAdapter.refreshItems(displayBookList.getValue());
+                progressBar.setVisibility(View.GONE);
             }
         });
     }
@@ -126,6 +162,12 @@ public class BookshelfActivity extends mBaseActivity {
         initDrawerEvent();
         initToolBarEvent();
         initOnItemLongClick();
+    }
+
+    @Override
+    protected void onResume() {
+        refreshDisplayBookList();
+        super.onResume();
     }
 
     /**
@@ -141,7 +183,10 @@ public class BookshelfActivity extends mBaseActivity {
             public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
                 int id = menuItem.getItemId();
                 if (id == R.id.nav_user_center) {
-                    startActivityByAnim(new Intent(BookshelfActivity.this, UserCenterActivity.class), R.anim.slide_in_right, R.anim.slide_out_right);
+                    Intent intent = new Intent(BookshelfActivity.this, UserCenterActivity.class);
+                    intent.putExtra("userid", MyApplication.getUser().getUserID());
+                    startActivityForResultByAnim(intent, USER_CENTER_CODE,
+                            R.anim.slide_in_right, R.anim.slide_out_right);
                 }
                 drawerLayout.closeDrawer(GravityCompat.START);
                 return true;
@@ -158,46 +203,106 @@ public class BookshelfActivity extends mBaseActivity {
         toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem menuItem) {
-                int id = menuItem.getItemId();
-                if (id == R.id.menu_add_book) {
-                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    intent.setType("file/*");
-                    intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    try {
-                        startActivityForResult(Intent.createChooser(intent, "选择文件"), FILE_SELECT_CODE);
-                    } catch (android.content.ActivityNotFoundException ex) {
-                        Toast.makeText(BookshelfActivity.this, "亲，木有文件管理器啊-_-!!", Toast.LENGTH_SHORT).show();
+                switch (menuItem.getItemId()) {
+                    case R.id.menu_add_book: {
+                        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                        intent.setType("*/*");
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        try {
+                            startActivityForResult(Intent.createChooser(intent, "选择文件"),
+                                    FILE_SELECT_CODE);
+                        } catch (android.content.ActivityNotFoundException ex) {
+                            Toast.makeText(BookshelfActivity.this, "亲，木有文件管理器啊-_-!!",
+                                    Toast.LENGTH_SHORT).show();
+                        }
                     }
-                    return true;
+                    break;
+                    case R.id.menu_time_order_asc: {
+                        orderSetting(userEntityDao.TIME_ASC);
+                    }
+                    break;
+                    case R.id.menu_time_order_desc: {
+                        orderSetting(userEntityDao.TIME_DESC);
+                    }
+                    break;
+                    case R.id.menu_file_order_asc: {
+                        orderSetting(userEntityDao.FILE_ASC);
+                    }
+                    break;
+                    case R.id.menu_file_order_desc: {
+                        orderSetting(userEntityDao.FILE_DESC);
+                    }
+                    break;
+                    default:
+                        return false;
                 }
-                return false;
+                return true;
+            }
+        });
+        cardViewSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(BookshelfActivity.this, SearchBookActivity.class);
+                intent.putExtra("userid", MyApplication.getUser().getUserID());
+                startActivityForResultByAnim(intent, SEARCH_BOOK_CODE, R.anim.fade_in, R.anim.fade_out);
+            }
+        });
+    }
+
+    private void orderSetting(String order) {
+        final String _order = order;
+        progressBar.setVisibility(View.VISIBLE);
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                userEntityDao.setOrder(_order);
+                userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+                displayBookList.postValue(userBookList);
             }
         });
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // TODO Auto-generated method stub
         if (resultCode != Activity.RESULT_OK) {
             Log.e(TAG, "onActivityResult() error, resultCode: " + resultCode);
             super.onActivityResult(requestCode, resultCode, data);
             return;
         }
-        if (requestCode == FILE_SELECT_CODE) {
-            Uri uri = data.getData();
-            if (uri.getPath() != null && uri.getPath().endsWith(".epub")) {
-                final String filePath = uri.getPath();
-                Log.i(TAG, "onActivityResult: " + filePath);
-                if (filePath != null) {
-                    new AddBookAsyncTask(userEntityDao, BookshelfActivity.this, displayBookList)
-                            .execute(filePath);
+        switch (requestCode) {
+            case FILE_SELECT_CODE: {
+                Uri uri = data.getData();
+                if (uri != null) {
+                    final String filePath = FileUtils.getFilePathByUri(this, uri);
+                    if (filePath != null && filePath.endsWith(".epub")) {
+                        Log.i(TAG, "onActivityResult: " + filePath);
+                        progressBar.setVisibility(View.VISIBLE);
+                        new AddBookAsyncTask(BookshelfActivity.this)
+                                .execute(filePath);
+                    } else {
+                        Toast.makeText(this, "仅支持.epub类型的电子书", Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }else{
-                Toast.makeText(this, "仅支持.epub类型的电子书", Toast.LENGTH_SHORT).show();
             }
-            super.onActivityResult(requestCode, resultCode, data);
+            break;
+            case CHANGE_BOOK_INFOR_CODE: {
+                userBookList.set(data.getIntExtra("position", 0),
+                        LibraryBookEntityDao.findBook(data.getStringExtra("bookurl")));
+            }
+            break;
+            case SEARCH_BOOK_CODE: {
+                userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+            }
+            break;
+            case USER_CENTER_CODE: {
+                Toast.makeText(getApplicationContext(), "用户信息已更改，请重新登录", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(BookshelfActivity.this, UserLoginActivity.class));
+                finish();
+            }
         }
+        super.onActivityResult(requestCode, resultCode, data);
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -209,8 +314,8 @@ public class BookshelfActivity extends mBaseActivity {
      * 沉浸式状态栏
      */
     private void immersiveStatusBar() {
-        StatusBarUtil.setColorForDrawerLayout(this, drawerLayout, getResources().getColor(R.color.md_light_statusbar), 0);
-        navigationView.setPadding(0, WidgetUtils.getStatusBarHeight(this), 0, 0);
+        StatusBarUtil.setColorForDrawerLayout(this, drawerLayout, getResources()
+                .getColor(R.color.md_light_statusbar), 0);
 
     }
 
@@ -232,54 +337,46 @@ public class BookshelfActivity extends mBaseActivity {
                                                                 int which) {
                                                 switch (which) {
                                                     case 0:
+                                                        Intent intent = new Intent(BookshelfActivity.this,
+                                                                ChangeBookInformActivity.class);
+                                                        intent.putExtra("bookurl",
+                                                                bookShelfViewAdapter.getItem(position).getBookUrl());
+                                                        intent.putExtra("position", position);
+                                                        startActivityForResultByAnim(intent, CHANGE_BOOK_INFOR_CODE,
+                                                                R.anim.slide_in_right, R.anim.slide_out_right);
                                                         break;
                                                     case 1:
                                                         userEntityDao.deleteBook(bookShelfViewAdapter.getItem(position));
+                                                        userBookList.remove(bookShelfViewAdapter.getItem(position));
+                                                        refreshDisplayBookList();
                                                 }
-                                                AsyncTask.execute(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        displayBookList.postValue(userEntityDao.getLibrary());
-                                                    }
-                                                });
                                             }
                                         })
-                                .setNegativeButton("取消",
-                                        new DialogInterface.OnClickListener() {
-                                            public void onClick(DialogInterface dialog,
-                                                                int which) {
-                                                // TODO Auto-generated method stub
-
-                                            }
-                                        }).show();
+                                .setNegativeButton("取消", null).show();
                         return true;
                     }
                 });
     }
 
 
-    static class AddBookAsyncTask extends AsyncTask<String, Void, Result> {
+    private void refreshDisplayBookList() {
+        progressBar.setVisibility(View.VISIBLE);
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                displayBookList.postValue(userBookList);
+            }
+        });
+    }
+
+    private static class AddBookAsyncTask extends AsyncTask<String, Void, Result> {
         private UserEntityDao userEntityDao;
-        private Context context;
-        private MutableLiveData<List<LibraryBookEntity>> displayBookList;
+        private BookshelfActivity activity;
 
-        public AddBookAsyncTask(UserEntityDao userEntityDao, Context context, MutableLiveData<List<LibraryBookEntity>> displayBookList) {
-            this.userEntityDao = userEntityDao;
-            this.context = context;
-            this.displayBookList = displayBookList;
-        }
 
-        @Override
-        protected void onPreExecute() {
-            Toast.makeText(context, "正在添加...", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        protected void onPostExecute(Result result) {
-            if (result instanceof Result.Success)
-                Toast.makeText(context, "添加成功", Toast.LENGTH_SHORT).show();
-            else
-                Toast.makeText(context, "添加失败," + ((Result.Error) result).getError().getMessage(), Toast.LENGTH_SHORT).show();
+        private AddBookAsyncTask(BookshelfActivity activity) {
+            this.activity = activity;
+            this.userEntityDao = activity.userEntityDao;
         }
 
         @Override
@@ -290,7 +387,8 @@ public class BookshelfActivity extends mBaseActivity {
                 InputStream in = new FileInputStream(new File(filePath));
                 Book book = epubReader.readEpub(in);
                 Result result = userEntityDao.addBook(book, filePath);
-                displayBookList.postValue(userEntityDao.getLibrary());
+                activity.userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+                activity.refreshDisplayBookList();
                 in.close();
                 return result;
             } catch (Exception e) {
@@ -298,6 +396,15 @@ public class BookshelfActivity extends mBaseActivity {
                 e.printStackTrace();
                 return new Result.Error(e);
             }
+        }
+
+        @Override
+        protected void onPostExecute(Result result) {
+            if (result instanceof Result.Success) {
+                Toast.makeText(activity, "添加成功", Toast.LENGTH_SHORT).show();
+            } else
+                Toast.makeText(activity, "添加失败," + ((Result.Error) result).getError().getMessage(),
+                        Toast.LENGTH_SHORT).show();
         }
     }
 }

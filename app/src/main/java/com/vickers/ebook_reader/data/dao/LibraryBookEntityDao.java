@@ -1,6 +1,7 @@
 /* Created by Vickers Jian on 2019/08 */
 package com.vickers.ebook_reader.data.dao;
 
+import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -15,15 +16,19 @@ import com.vickers.ebook_reader.data.entity.UserLibraryBookEntity;
 import org.litepal.LitePal;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
 import nl.siegmann.epublib.domain.Author;
 import nl.siegmann.epublib.domain.Book;
+import nl.siegmann.epublib.epub.EpubReader;
 
 import static com.vickers.ebook_reader.utils.FileUtils.isFileExist;
 import static com.vickers.ebook_reader.utils.FileUtils.readStream;
@@ -39,7 +44,7 @@ public class LibraryBookEntityDao {
     private String title;
     private String author;
     private String bookUrl;
-    public String coverUrl;
+    private String coverUrl;
 
     public LibraryBookEntityDao(Book book, String bookUrl) {
         this.book = book;
@@ -53,6 +58,13 @@ public class LibraryBookEntityDao {
         }
     }
 
+    public LibraryBookEntityDao(LibraryBookEntity book) {
+        this.title = book.getTitle();
+        this.author = book.getAuthor();
+        this.bookUrl = book.getBookUrl();
+        this.coverUrl = book.getCoverUrl();
+    }
+
     /**
      * 向数据库中添加书籍
      *
@@ -63,7 +75,7 @@ public class LibraryBookEntityDao {
      * @return 数据库中的实例(即带有id)
      */
     public static Result<LibraryBookEntity> addBook(String title, String author, String bookUrl, String coverUrl) {
-        if (findBook(title, author) == null) {
+        if (findBook(bookUrl) == null) {
             LibraryBookEntity libraryBook = new LibraryBookEntity(title, author, bookUrl, coverUrl);
             try {
                 libraryBook.saveThrows();
@@ -102,7 +114,7 @@ public class LibraryBookEntityDao {
         List<LibraryBookEntity> toSave = new ArrayList<>();
         while (it.hasNext()) {
             LibraryBookEntity book = it.next();
-            LibraryBookEntity origin = findBook(book.getTitle(), book.getAuthor());
+            LibraryBookEntity origin = findBook(book.getBookUrl());
             if (origin == null) {
                 toSave.add(book);
             } else {
@@ -128,23 +140,48 @@ public class LibraryBookEntityDao {
      * @param title
      * @param author
      */
-    public static void deleteBook(String title, String author) {
-        LibraryBookEntity bookEntity = findBook(title, author);
+    public static void deleteBook(String bookUrl) {
+        LibraryBookEntity bookEntity = findBook(bookUrl);
         if (bookEntity != null) {
             LitePal.delete(LibraryBookEntity.class, bookEntity.getId());
+        }
+    }
+
+    public static Result<LibraryBookEntity> updataBook(LibraryBookEntity book) {
+        try {
+            LibraryBookEntity bookEntity = findBook(book);
+            if (bookEntity != null) {
+                if (!book.getTitle().equals("")) {
+                    ContentValues values = new ContentValues();
+                    if (!bookEntity.getTitle().equals(book.getTitle()))
+                        values.put("title", book.getTitle());
+                    if (!bookEntity.getAuthor().equals(book.getAuthor()))
+                        values.put("author", book.getAuthor());
+                    if (!bookEntity.getCoverUrl().equals(book.getCoverUrl())) {
+                        String cachePath = FileUtils.getCachePath() + File.separator + "cover";
+                        Result result = LibraryBookEntityDao.extractEpubCoverImage(cachePath, bookEntity.getCoverUrl(), book.getCoverUrl());
+                        if (result instanceof Result.Success) {
+                            values.put("coverurl", (String) ((Result.Success) result).getData());
+                        } else throw ((Result.Error) result).getError();
+                    }
+                    LitePal.update(LibraryBookEntity.class, values, book.getId());
+                    return new Result.Success<>(book);
+                } else throw new Exception("书名不能为空");
+            } else throw new Exception("该书不在数据库中");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Result.Error(e);
         }
     }
 
     /**
      * 查找书籍
      *
-     * @param title  书名
-     * @param author 作者
      * @return 数据库中的实例
      */
-    public static LibraryBookEntity findBook(String title, String author) {
+    public static LibraryBookEntity findBook(String bookUrl) {
         List<LibraryBookEntity> bookList = LitePal
-                .where("title = ? and author = ?", title, author)
+                .where("bookurl = ? ", bookUrl)
                 .find(LibraryBookEntity.class);
         if (bookList == null || bookList.size() == 0) {
             return null;
@@ -159,10 +196,9 @@ public class LibraryBookEntityDao {
     /**
      * @param book 要查找的书籍
      * @return 数据库中的实例
-     * @see #findBook(String, String) findBook(String, String)的重载
      */
     public static LibraryBookEntity findBook(LibraryBookEntity book) {
-        return findBook(book.getTitle(), book.getAuthor());
+        return findBook(book.getBookUrl());
     }
 
 
@@ -171,88 +207,119 @@ public class LibraryBookEntityDao {
      *
      * @return List UserEntity 用户列表
      */
-    public List<UserEntity> getUsers(LibraryBookEntity libraryBookEntity) {
-        List<UserLibraryBookEntity> userLibraryBookEntityList = LitePal.where("librarybookentity_id = ?", String.valueOf(libraryBookEntity.getId())).find(UserLibraryBookEntity.class);
-        List<UserEntity> Users = new ArrayList<>();
-        for (UserLibraryBookEntity book_user : userLibraryBookEntityList) {
-            Users.add(LitePal.find(UserEntity.class, book_user.getUserentity_id()));
+    public static List<UserEntity> getUsers(LibraryBookEntity book) {
+        LibraryBookEntity bookEntity = findBook(book.getBookUrl());
+        if (bookEntity != null) {
+            List<UserLibraryBookEntity> userLibraryBookEntityList = LitePal.where("librarybookentity_id = ?", String.valueOf(bookEntity.getId())).find(UserLibraryBookEntity.class);
+            List<UserEntity> Users = new ArrayList<>();
+            for (UserLibraryBookEntity book_user : userLibraryBookEntityList) {
+                Users.add(LitePal.find(UserEntity.class, book_user.getUserentity_id()));
+            }
+            return Users;
         }
-        return Users;
+        return null;
     }
 
     /**
      * 添加书籍到数据库
      */
     public Result<LibraryBookEntity> addBook() {
-        title = book.getMetadata().getFirstTitle();
         if (title.equals("")) {
             return new Result.Error(new Exception("添加的书籍无书名"));
+        } else if (!FileUtils.isFileExist(bookUrl)) {
+            return new Result.Error(new Exception("未找到该文件"));
         }
-        coverUrl = getCoverUrl();
-        return addBook(title, author, bookUrl, coverUrl);
+        try {
+            coverUrl = getCoverUrl();
+            return addBook(title, author, bookUrl, coverUrl);
+        } catch (Exception e) {
+            return new Result.Error(e);
+        }
     }
 
     /**
      * 从数据库中删除书籍
      */
     public void deleteBook() {
-        deleteBook(title, author);
+        deleteBook(bookUrl);
     }
 
     /**
      * @return 数据库中的实例
      */
     public LibraryBookEntity findBook() {
-        return findBook(title, author);
+        return findBook(bookUrl);
     }
 
     /**
      * 将封面写入缓存，返回缓存封面uri
      */
-    private String getCoverUrl() {
+    private String getCoverUrl() throws Exception {
         String cachePath = FileUtils.getCachePath() + File.separator + "cover";
-        FileUtils.createFolderIfNotExists(cachePath);
-        String coverUrl = cachePath + File.separator + title.hashCode() + ".jpg";
-        if (isFileExist(coverUrl)) {
-            Log.i(TAG, "getCoverUrl: " + coverUrl);
-            return coverUrl;
-        } else {
-            return extractEpubCoverImage(cachePath);
-        }
+        return extractEpubCoverImage(cachePath);
     }
 
     /**
      * 将封面写入缓存
      */
-    private String extractEpubCoverImage(String cachePath) {
+    private String extractEpubCoverImage(String cachePath) throws Exception {
         String coverCacheUrl = "";
-        InputStream inputStream = null;
-        try {
-            inputStream = book.getCoverImage().getInputStream();
-        } catch (IOException e) {
-            Log.i(TAG, "extractEpubCoverImage: " + e.getMessage());
-            e.printStackTrace();
+        if (book == null) {
+            getBookFromBookUrl(bookUrl);
         }
+        InputStream inputStream = book.getCoverImage().getInputStream();
         if (inputStream == null) {
-            throw new RuntimeException("stream is null");
+            throw new RuntimeException("未找到封面");
         } else {
-            try {
-                byte[] data = readStream(inputStream);
-                if (data != null) {
-                    Bitmap bitmapCover = BitmapFactory.decodeByteArray(data, 0, data.length);
-                    FileUtils.createFolderIfNotExists(cachePath);
-                    coverCacheUrl = cachePath + File.separator + title.hashCode() + ".jpg";
-                    FileOutputStream out = new FileOutputStream(new File(coverCacheUrl));
-                    bitmapCover.compress(Bitmap.CompressFormat.JPEG, 90, out);
-                    out.flush();
-                    out.close();
-                    inputStream.close();
-                }
-            } catch (Exception e) {
-                Log.i(TAG, "extractEpubCoverImage: " + e.getMessage());
-                e.printStackTrace();
+            byte[] data = readStream(inputStream);
+            if (data != null) {
+                Bitmap bitmapCover = BitmapFactory.decodeByteArray(data, 0, data.length);
+                FileUtils.createFolderIfNotExists(cachePath);
+                coverCacheUrl = cachePath + File.separator + title.hashCode() + System.currentTimeMillis() + ".jpg";
+                FileOutputStream out = new FileOutputStream(new File(coverCacheUrl));
+                bitmapCover.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                out.flush();
+                out.close();
+                inputStream.close();
             }
         }
         return coverCacheUrl;
+    }
+
+    public static Book getBookFromBookUrl(String bookUrl) throws Exception {
+        if (FileUtils.isFileExist(bookUrl)) {
+            EpubReader epubReader = new EpubReader();
+            InputStream in = new FileInputStream(new File(bookUrl));
+            Book book = epubReader.readEpub(in);
+            in.close();
+            return book;
+        } else throw new Exception(MessageFormat.format("未找到地址为：{0}的文件", bookUrl));
+    }
+
+    public static InputStream getBookCoverInputStream(Book book) throws Exception {
+        if (book != null) {
+            return book.getCoverImage().getInputStream();
+        } else throw new Exception("Book == null");
+    }
+
+    public static Result<String> extractEpubCoverImage(String cachePath, String oldImagePath, String imagePath) {
+        String coverCacheUrl = "";
+        try {
+            if (imagePath != null && !imagePath.equals("")) {
+                Bitmap bitmapCover = BitmapFactory.decodeFile(imagePath);
+                FileUtils.createFolderIfNotExists(cachePath);
+                coverCacheUrl = cachePath + File.separator + imagePath.hashCode() + System.currentTimeMillis() + ".jpg";
+                FileUtils.renameFile(oldImagePath, coverCacheUrl);
+                FileOutputStream out=new FileOutputStream(new File(coverCacheUrl));
+                bitmapCover.compress(Bitmap.CompressFormat.JPEG, 90, out);
+                out.flush();
+                out.close();
+            }
+            return new Result.Success<>(coverCacheUrl);
+        } catch (Exception e) {
+            Log.i(TAG, "extractEpubCoverImage: " + e.getMessage());
+            return new Result.Error(e);
+        }
+
     }
 }

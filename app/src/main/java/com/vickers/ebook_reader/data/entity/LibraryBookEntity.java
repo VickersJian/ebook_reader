@@ -10,8 +10,8 @@ import nl.siegmann.epublib.domain.Book;
 
 /**
  * 数据库LibraryBookEntity表：所有用户添加进app的书籍<p>
- * 书籍重复判定：书名(title)和作者(author)相同即认定为同一本书
- * 若没有作者仅由书名决定，载入的书籍不能没有书名
+ * 书籍重复判定：书的路径(bookUrl)相同即认定为同一本书
+ * 载入的书籍不能没有书名
  */
 public class LibraryBookEntity extends LitePalSupport {
 
@@ -78,8 +78,7 @@ public class LibraryBookEntity extends LitePalSupport {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj instanceof LibraryBookEntity) {
-            return author.equals(((LibraryBookEntity) obj).author) &&
-                    title.equals(((LibraryBookEntity) obj).title);
+            return bookUrl.equals(((LibraryBookEntity) obj).bookUrl);
         } else return false;
     }
 
@@ -87,8 +86,7 @@ public class LibraryBookEntity extends LitePalSupport {
     public int hashCode() {
         final int prime = 31;
         int result = 17;
-        result = prime * result + ((title == null) ? 0 : title.hashCode());
-        result = prime * result + ((author == null) ? 0 : author.hashCode());
+        result = prime * result + ((bookUrl == null) ? 0 : bookUrl.hashCode());
         return result;
     }
 

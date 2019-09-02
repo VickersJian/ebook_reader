@@ -40,10 +40,10 @@ public class UserSignUpActivity extends mBaseActivity {
 
     @Override
     protected void bindView() {
-        edt_userId = (EditText) findViewById(R.id.edt_userId);
-        edt_displayName = (EditText) findViewById(R.id.edt_dispalyName);
-        edt_password = (EditText) findViewById(R.id.edt_password);
-        btn_signUp = (Button) findViewById(R.id.btn_sign_up);
+        edt_userId = findById(R.id.edt_userId);
+        edt_displayName = findById(R.id.edt_dispalyName);
+        edt_password = findById(R.id.edt_password);
+        btn_signUp = findById(R.id.btn_sign_up);
     }
 
     @Override

@@ -4,6 +4,7 @@
     <string name="sign_in">登录</string>
     <string name="userId">用户名</string>
     <string name="displayName">昵称(选填)</string>
+    <string name="displayName_short">昵称</string>
     <string name="finish">完成</string>
     <string name="password">密码</string>
     <string name="name_null_error">用户名不能为空</string>
@@ -16,13 +17,13 @@
     <string name="sign_up_long">没有账户？注册一个</string>
     <string name="sign_up_short">注册</string>
     <string name="logout">退出账号</string>
-    <string name="app_name">书架</string>
+    <string name="app_name">Book Reader</string>
     <string name="appbar_scrolling_view_behavior" translatable="false">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
     <string name="user_center">用户中心</string>
     <string name="book_source_manage">书源管理</string>
     <string name="replace_rule_title">替换净化</string>
     <string name="action_download">下载任务</string>
-    <string name="welcome">启动页</string>
+    <string name="welcome" translatable="false">欢迎使用</string>
     <string name="change_user_head">更换头像</string>
     <string name="navigation_drawer_open">导航栏打开</string>
     <string name="navigation_drawer_close">导航栏关闭</string>
@@ -31,9 +32,20 @@
     <string name="view">视图</string>
     <string name="grid">网格</string>
     <string name="list">列表</string>
-    <string name="nb_file_sub_count">%1$d 项</string>
-    <string name="select_sd_file">选择SD卡</string>
     <string name="modify">修改</string>
     <string name="delete">删除</string>
+    <string name="title">书名</string>
+    <string name="author">作者</string>
+    <string name="cover">封面</string>
+    <string name="save" translatable="false">保存更改</string>
+    <string name="save_short" translatable="false">保存</string>
+    <string name="cancel">取消</string>
+    <string name="complete" translatable="false">完成</string>
+    <string name="order_way">排列方式</string>
+    <string name="time_order_asc">按时间升序排列</string>
+    <string name="time_order_desc">按时间降序排列</string>
+    <string name="file_order_asc">按文件名升序排列</string>
+    <string name="file_order_desc">按文件名降序排列</string>
+    <string name="edit" translatable="false">编辑</string>
 
 </resources>

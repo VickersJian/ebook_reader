@@ -16,6 +16,7 @@ public class UserEntity extends LitePalSupport {
     private String userId;//唯一标识
     private String dispalyName;
     private String password;
+    private String order="";
 
     private List<UserLibraryBookEntity> userLibraryBookEntityList = new ArrayList<>();
 
@@ -50,6 +51,14 @@ public class UserEntity extends LitePalSupport {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getOrder() {
+        return order;
+    }
+
+    public void setOrder(String order) {
+        this.order = order;
     }
 
     public void setPassword(String password) {
