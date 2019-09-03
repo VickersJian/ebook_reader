@@ -1,16 +1,13 @@
 /* Created by Vickers Jian on 2019/08 */
 package com.vickers.ebook_reader.data.dao;
 
-import android.util.Log;
-
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 import com.vickers.ebook_reader.data.entity.UserEntity;
 import com.vickers.ebook_reader.data.entity.UserLibraryBookEntity;
 
 import org.litepal.LitePal;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;

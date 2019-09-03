@@ -1,5 +1,5 @@
 /* Created by Vickers Jian on 2019/08 */
-package com.vickers.ebook_reader.data;
+package com.vickers.ebook_reader.Base;
 
 /**
  * Result 泛型类，用于储存得到的所需结果(Success)<p>

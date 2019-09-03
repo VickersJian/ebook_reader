@@ -1,6 +1,5 @@
 package com.vickers.ebook_reader.View.adapter.holder;
 
-import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
@@ -8,7 +7,7 @@ import android.widget.TextView;
 import com.vickers.ebook_reader.Helper.ImageLoadHelper;
 import com.vickers.ebook_reader.R;
 import com.vickers.ebook_reader.View.adapter.base.ViewHolderImpl;
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 import com.vickers.ebook_reader.utils.FileUtils;
 import com.vickers.ebook_reader.widget.RatioImageView;

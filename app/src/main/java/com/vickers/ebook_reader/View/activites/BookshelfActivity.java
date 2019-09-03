@@ -2,10 +2,8 @@
 package com.vickers.ebook_reader.View.activites;
 
 import android.app.Activity;
-import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Observer;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.PorterDuff;
@@ -40,14 +38,13 @@ import com.vickers.ebook_reader.R;
 
 import com.vickers.ebook_reader.View.adapter.BookViewAdapter;
 import com.vickers.ebook_reader.View.adapter.base.BaseListAdapter;
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 
 import com.vickers.ebook_reader.data.dao.LibraryBookEntityDao;
 import com.vickers.ebook_reader.data.dao.UserEntityDao;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 
 import com.vickers.ebook_reader.utils.FileUtils;
-import com.vickers.ebook_reader.utils.WidgetUtils;
 
 
 import java.io.File;
@@ -55,10 +52,7 @@ import java.io.FileInputStream;
 
 import java.io.InputStream;
 
-import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
-import java.util.Comparator;
 
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.epub.EpubReader;
@@ -161,7 +155,7 @@ public class BookshelfActivity extends mBaseActivity {
     protected void bindEvent() {
         initDrawerEvent();
         initToolBarEvent();
-        initOnItemLongClick();
+        initOnItemClick();
     }
 
     @Override
@@ -320,9 +314,17 @@ public class BookshelfActivity extends mBaseActivity {
     }
 
     /**
-     * 设置长点击事件
+     * 设置点击事件
      */
-    private void initOnItemLongClick() {
+    private void initOnItemClick() {
+        bookShelfViewAdapter.setOnItemClickListener(new BaseListAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int pos) {
+                Intent intent=new Intent(BookshelfActivity.this,ReadBookActivity.class);
+                intent.putExtra("bookurl",bookShelfViewAdapter.getItem(pos).getBookUrl());
+                startActivityByAnim(intent,R.anim.slide_in_right,R.anim.slide_out_right);
+            }
+        });
         final String[] longclickitemlist = {"修改", "删除"};
         bookShelfViewAdapter.setOnItemLongClickListener(
                 new BaseListAdapter.OnItemLongClickListener() {

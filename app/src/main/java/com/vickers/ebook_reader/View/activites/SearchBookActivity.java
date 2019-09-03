@@ -97,7 +97,7 @@ public class SearchBookActivity extends mBaseActivity {
     protected void bindEvent() {
         initToolbar();
         initSearchView();
-        initOnItemLongClick();
+        initOnItemClick();
     }
 
     private void initSearchView() {
@@ -161,7 +161,15 @@ public class SearchBookActivity extends mBaseActivity {
     /**
      * 设置长点击事件
      */
-    private void initOnItemLongClick() {
+    private void initOnItemClick() {
+        searchResultAdapter.setOnItemClickListener(new BaseListAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int pos) {
+                Intent intent=new Intent(SearchBookActivity.this,ReadBookActivity.class);
+                intent.putExtra("bookurl",searchResultAdapter.getItem(pos).getBookUrl());
+                startActivityByAnim(intent,R.anim.slide_in_right,R.anim.slide_out_right);
+            }
+        });
         final String[] longclickitemlist = {"修改", "删除"};
         searchResultAdapter.setOnItemLongClickListener(
                 new BaseListAdapter.OnItemLongClickListener() {

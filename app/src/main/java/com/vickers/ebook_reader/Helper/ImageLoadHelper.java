@@ -9,7 +9,7 @@ import android.support.v4.util.LruCache;
 import android.util.Log;
 import android.widget.ImageView;
 
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

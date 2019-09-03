@@ -3,6 +3,7 @@ package com.vickers.ebook_reader.data.entity;
 
 import org.litepal.crud.LitePalSupport;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 

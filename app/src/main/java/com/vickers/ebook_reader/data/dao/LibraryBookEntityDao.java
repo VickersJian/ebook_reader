@@ -4,11 +4,10 @@ package com.vickers.ebook_reader.data.dao;
 import android.content.ContentValues;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import com.vickers.ebook_reader.utils.FileUtils;
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 import com.vickers.ebook_reader.data.entity.UserEntity;
 import com.vickers.ebook_reader.data.entity.UserLibraryBookEntity;
@@ -17,9 +16,7 @@ import org.litepal.LitePal;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -30,7 +27,6 @@ import nl.siegmann.epublib.domain.Author;
 import nl.siegmann.epublib.domain.Book;
 import nl.siegmann.epublib.epub.EpubReader;
 
-import static com.vickers.ebook_reader.utils.FileUtils.isFileExist;
 import static com.vickers.ebook_reader.utils.FileUtils.readStream;
 
 /**

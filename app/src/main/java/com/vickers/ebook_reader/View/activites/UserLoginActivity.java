@@ -26,7 +26,7 @@ import android.widget.Toast;
 
 import com.vickers.ebook_reader.Base.mBaseActivity;
 import com.vickers.ebook_reader.MyApplication;
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 
 import com.vickers.ebook_reader.data.dao.UserEntityDao;
 import com.vickers.ebook_reader.data.entity.UserEntity;

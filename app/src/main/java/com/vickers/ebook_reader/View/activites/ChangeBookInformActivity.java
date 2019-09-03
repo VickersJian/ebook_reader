@@ -4,18 +4,14 @@ import android.app.Activity;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Observer;
 import android.content.ActivityNotFoundException;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.provider.DocumentsContract;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -27,18 +23,29 @@ import android.widget.Toast;
 import com.vickers.ebook_reader.Base.mBaseActivity;
 import com.vickers.ebook_reader.Helper.ImageLoadHelper;
 import com.vickers.ebook_reader.R;
-import com.vickers.ebook_reader.data.Result;
+import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.dao.LibraryBookEntityDao;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 import com.vickers.ebook_reader.utils.FileUtils;
 import com.vickers.ebook_reader.widget.RatioImageView;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+
+import nl.siegmann.epublib.domain.Author;
+import nl.siegmann.epublib.domain.Book;
+import nl.siegmann.epublib.domain.Metadata;
+import nl.siegmann.epublib.epub.EpubReader;
+import nl.siegmann.epublib.epub.EpubWriter;
 
 public class ChangeBookInformActivity extends mBaseActivity {
 
@@ -47,6 +54,7 @@ public class ChangeBookInformActivity extends mBaseActivity {
     private RatioImageView coverView;
     private TextView insideTitle;
     private ProgressBar progressBar;
+    private ProgressBar progressBarSaving;
     private EditText title;
     private EditText author;
     private String coverUrl;
@@ -69,7 +77,8 @@ public class ChangeBookInformActivity extends mBaseActivity {
     protected void bindView() {
         coverView = findById(R.id.image_book_cover);
         insideTitle = findById(R.id.textview_title);
-        progressBar = findById(R.id.loading);
+        progressBar = findById(R.id.loading_cover);
+        progressBarSaving=findById(R.id.loading);
         title = findById(R.id.edt_title);
         author = findById(R.id.edt_author);
         save = findById(R.id.btn_save_change);
@@ -187,7 +196,7 @@ public class ChangeBookInformActivity extends mBaseActivity {
                             out.close();
                             book.setCoverUrl(orignalCoverCachePath);
                         } catch (Exception e) {
-
+                            e.printStackTrace();
                         }
                     } else book.setCoverUrl(coverUrl);
                     new ChangeBookTask(ChangeBookInformActivity.this).execute(book);
@@ -226,36 +235,69 @@ public class ChangeBookInformActivity extends mBaseActivity {
 
 
     static private class ChangeBookTask extends AsyncTask<LibraryBookEntity, Void, Result> {
-        private Context context;
+        private ChangeBookInformActivity activity;
 
-        ChangeBookTask(Context context) {
-            this.context = context;
+        ChangeBookTask(ChangeBookInformActivity activity) {
+            this.activity = activity;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            activity.progressBarSaving.setVisibility(View.VISIBLE);
+            activity.save.setEnabled(false);
+            activity.cancel.setEnabled(false);
         }
 
         @Override
         protected Result doInBackground(LibraryBookEntity... bookEntities) {
+            try {
+                Log.i(TAG, "doInBackground: ");
+                EpubReader reader = new EpubReader();
+                InputStream in = new FileInputStream(new File(bookEntities[0].getBookUrl()));
+                Book book = reader.readEpub(in);
+                in.close();
+                Metadata metadata = new Metadata();
+                if (!bookEntities[0].getAuthor().equals("")) {
+                    Author author = new Author(bookEntities[0].getAuthor());
+                    List<Author> authorList = new ArrayList<>();
+                    authorList.add(author);
+                    metadata.setAuthors(authorList);
+                }
+                if (!bookEntities[0].getTitle().equals("")) {
+                    List<String> titleList = new ArrayList<>();
+                    titleList.add(bookEntities[0].getTitle());
+                    metadata.setTitles(titleList);
+                    book.setMetadata(metadata);
+                }
+                EpubWriter writer = new EpubWriter();
+                writer.write(book, new FileOutputStream(new File(bookEntities[0].getBookUrl())));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             LibraryBookEntity book = bookEntities[0];
             return LibraryBookEntityDao.updataBook(book);
         }
 
         @Override
         protected void onPostExecute(Result result) {
+            activity.progressBarSaving.setVisibility(View.GONE);
+            activity.save.setEnabled(true);
+            activity.cancel.setEnabled(true);
             if (result instanceof Result.Success) {
                 LibraryBookEntity book = (LibraryBookEntity) ((Result.Success) result).getData();
-                ChangeBookInformActivity activity = (ChangeBookInformActivity) context;
-                Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, "已保存", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent();
                 intent.putExtra("bookurl", book.getBookUrl());
                 intent.putExtra("position", activity.position);
                 activity.setResult(Activity.RESULT_OK, intent);
                 activity.finish();
             } else {
-                Toast.makeText(context,
+                Toast.makeText(activity,
                         "保存失败," + ((Result.Error) result).getError().getMessage(), Toast.LENGTH_SHORT).show();
             }
-            String resetCachePath=FileUtils.getCachePath() + File.separator + "resetCashe";
-            if(FileUtils.isFileExist(resetCachePath)){
-                File resetCache=new File(resetCachePath);
+            String resetCachePath = FileUtils.getCachePath() + File.separator + "resetCashe";
+            if (FileUtils.isFileExist(resetCachePath)) {
+                File resetCache = new File(resetCachePath);
                 FileUtils.deleteFile(resetCache);
             }
         }
@@ -263,20 +305,14 @@ public class ChangeBookInformActivity extends mBaseActivity {
 
     static private class ResetCoverTask extends AsyncTask<LibraryBookEntity, Void, Result> {
         private ChangeBookInformActivity activity;
-        private ProgressBar progressBar;
-        private ImageLoadHelper imageLoadHelper;
-        private RatioImageView coverView;
 
-        public ResetCoverTask(ChangeBookInformActivity context) {
-            this.activity = context;
-            this.progressBar = activity.progressBar;
-            this.imageLoadHelper = activity.imageLoadHelper;
-            this.coverView = activity.coverView;
+        public ResetCoverTask(ChangeBookInformActivity activity) {
+            this.activity = activity;
         }
 
         @Override
         protected void onPreExecute() {
-            progressBar.setVisibility(View.VISIBLE);
+            activity.progressBar.setVisibility(View.VISIBLE);
         }
 
         @Override
@@ -298,8 +334,8 @@ public class ChangeBookInformActivity extends mBaseActivity {
 
             if (result instanceof Result.Success) {
                 InputStream inputStream = (InputStream) ((Result.Success) result).getData();
-                imageLoadHelper.loadBitmap("reset", inputStream, coverView);
-                activity.coverUrl="reset";
+                activity.imageLoadHelper.loadBitmap("reset", inputStream, activity.coverView);
+                activity.coverUrl = "reset";
                 Log.i(TAG, "onPostExecute: ");
                 try {
                     inputStream.close();
@@ -310,7 +346,7 @@ public class ChangeBookInformActivity extends mBaseActivity {
                 Toast.makeText(activity, "重置失败，" + ((Result.Error) result).getError().getMessage(),
                         Toast.LENGTH_SHORT).show();
             }
-            progressBar.setVisibility(View.GONE);
+            activity.progressBar.setVisibility(View.GONE);
         }
     }
 }
