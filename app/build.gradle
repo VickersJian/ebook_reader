@@ -19,9 +19,8 @@ android {
 }
 
 repositories {
-    maven {
-        url 'https://github.com/psiegman/mvn-repo/raw/master/releases'
-    }
+    maven { url 'https://github.com/psiegman/mvn-repo/raw/master/releases' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -52,6 +51,9 @@ dependencies {
 
     //滑动返回
     implementation 'me.imid.swipebacklayout.lib:library:1.1.0'
+
+    //统计图
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     implementation project(':mylibrary')
     testImplementation 'junit:junit:4.12'

@@ -19,7 +19,7 @@
             android:text="@string/user_center"
             android:textSize="15sp"
             android:gravity="center"
-            android:layout_marginEnd="60dp"/>
+            android:layout_marginEnd="70dp"/>
     </android.support.v7.widget.Toolbar>
 
     <android.support.design.widget.TextInputLayout

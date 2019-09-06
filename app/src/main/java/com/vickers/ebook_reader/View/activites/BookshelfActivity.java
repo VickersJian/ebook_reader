@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,11 +45,13 @@ import com.vickers.ebook_reader.data.dao.LibraryBookEntityDao;
 import com.vickers.ebook_reader.data.dao.UserEntityDao;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 
+import com.vickers.ebook_reader.data.entity.UserEntity;
 import com.vickers.ebook_reader.utils.FileUtils;
 
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Arrays;
 
 import java.io.InputStream;
 
@@ -66,6 +69,7 @@ import static com.vickers.ebook_reader.data.dao.UserEntityDao.findUserByUserId;
 public class BookshelfActivity extends mBaseActivity {
 
     private static final String TAG = "BookshelfActivity";
+    private UserEntity user;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private View headerView;
@@ -77,6 +81,7 @@ public class BookshelfActivity extends mBaseActivity {
     private RecyclerView recyclerView;
     private UserEntityDao userEntityDao;
     private BookViewAdapter bookShelfViewAdapter;
+    private String bookType = null;
     private List<LibraryBookEntity> userBookList;
     private MutableLiveData<List<LibraryBookEntity>> displayBookList;
 
@@ -84,7 +89,10 @@ public class BookshelfActivity extends mBaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         if (MyApplication.getUser() == null) {
             String userId = MyApplication.getUserPreferences().getString("user", "");
-            MyApplication.setUser(findUserByUserId(userId));
+            user = findUserByUserId(userId);
+            MyApplication.setUser(user);
+        } else {
+            user = MyApplication.getUser();
         }
         super.onCreate(savedInstanceState);
         immersiveStatusBar();
@@ -131,16 +139,16 @@ public class BookshelfActivity extends mBaseActivity {
     @Override
     protected void initData() {
         userId.setTextColor(getResources().getColor(R.color.tv_text_default));
-        userId.setText(MyApplication.getUser().getUserID());
+        userId.setText(user.getUserID());
         displayName.setTextColor(getResources().getColor(R.color.tv_text_default));
-        displayName.setText(MyApplication.getUser().getDispalyName());
-        userEntityDao = new UserEntityDao(MyApplication.getUser());
+        displayName.setText(user.getDispalyName());
+        userEntityDao = new UserEntityDao(user);
         displayBookList = new MutableLiveData<>();
         bookShelfViewAdapter = new BookViewAdapter();
         recyclerView.setAdapter(bookShelfViewAdapter);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);
         recyclerView.setLayoutManager(gridLayoutManager);
-        userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+        userBookList = userEntityDao.getBook(null, userEntityDao.getOrder());
         refreshDisplayBookList();
         displayBookList.observe(this, new Observer<List<LibraryBookEntity>>() {
             @Override
@@ -178,7 +186,7 @@ public class BookshelfActivity extends mBaseActivity {
                 int id = menuItem.getItemId();
                 if (id == R.id.nav_user_center) {
                     Intent intent = new Intent(BookshelfActivity.this, UserCenterActivity.class);
-                    intent.putExtra("userid", MyApplication.getUser().getUserID());
+                    intent.putExtra("userid", user.getUserID());
                     startActivityForResultByAnim(intent, USER_CENTER_CODE,
                             R.anim.slide_in_right, R.anim.slide_out_right);
                 }
@@ -211,6 +219,29 @@ public class BookshelfActivity extends mBaseActivity {
                         }
                     }
                     break;
+                    case R.id.menu_screen: {
+
+                        List<String> bookTypeList = userEntityDao.getBookTypeList();
+                        bookTypeList.add(0, "全部");
+                        final String[] bookTypeArr = new String[bookTypeList.size()];
+                        bookTypeList.toArray(bookTypeArr);
+                        new AlertDialog.Builder(BookshelfActivity.this).setTitle("筛选")
+                                .setItems(bookTypeArr, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        if (which == 0) {
+                                            userBookList = userEntityDao.getBook(null, userEntityDao.getOrder());
+                                            bookType = null;
+                                        } else {
+                                            userBookList = userEntityDao.getBook(bookTypeArr[which], userEntityDao.getOrder());
+                                            bookType = bookTypeArr[which];
+                                        }
+                                        refreshDisplayBookList();
+                                    }
+                                })
+                                .show();
+                    }
+                    break;
                     case R.id.menu_time_order_asc: {
                         orderSetting(userEntityDao.TIME_ASC);
                     }
@@ -237,7 +268,7 @@ public class BookshelfActivity extends mBaseActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(BookshelfActivity.this, SearchBookActivity.class);
-                intent.putExtra("userid", MyApplication.getUser().getUserID());
+                intent.putExtra("userid", user.getUserID());
                 startActivityForResultByAnim(intent, SEARCH_BOOK_CODE, R.anim.fade_in, R.anim.fade_out);
             }
         });
@@ -250,7 +281,7 @@ public class BookshelfActivity extends mBaseActivity {
             @Override
             public void run() {
                 userEntityDao.setOrder(_order);
-                userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+                userBookList = userEntityDao.getBook(bookType, userEntityDao.getOrder());
                 displayBookList.postValue(userBookList);
             }
         });
@@ -285,7 +316,7 @@ public class BookshelfActivity extends mBaseActivity {
             }
             break;
             case SEARCH_BOOK_CODE: {
-                userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+                userBookList = userEntityDao.getBook(null, userEntityDao.getOrder());
             }
             break;
             case USER_CENTER_CODE: {
@@ -320,37 +351,48 @@ public class BookshelfActivity extends mBaseActivity {
         bookShelfViewAdapter.setOnItemClickListener(new BaseListAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int pos) {
-                Intent intent=new Intent(BookshelfActivity.this,ReadBookActivity.class);
-                intent.putExtra("bookurl",bookShelfViewAdapter.getItem(pos).getBookUrl());
-                startActivityByAnim(intent,R.anim.slide_in_right,R.anim.slide_out_right);
+                Intent intent = new Intent(BookshelfActivity.this, ReadBookActivity.class);
+                intent.putExtra("bookurl", bookShelfViewAdapter.getItem(pos).getBookUrl());
+                startActivityByAnim(intent, R.anim.slide_in_right, R.anim.slide_out_right);
             }
         });
-        final String[] longclickitemlist = {"修改", "删除"};
+        final String[] longclickitemlist = {"阅读情况", "修改", "删除"};
         bookShelfViewAdapter.setOnItemLongClickListener(
                 new BaseListAdapter.OnItemLongClickListener() {
                     @Override
                     public boolean onItemLongClick(View view, int pos) {
                         final int position = pos;
-                        new AlertDialog.Builder(BookshelfActivity.this)
+                        new AlertDialog.Builder(BookshelfActivity.this).setTitle("更多")
                                 .setItems(longclickitemlist,
                                         new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialog,
                                                                 int which) {
                                                 switch (which) {
-                                                    case 0:
+                                                    case 0: {
+                                                        Intent intent=new Intent(BookshelfActivity.this,ReadingSituationActivity.class);
+                                                        intent.putExtra("userid",user.getUserID());
+                                                        intent.putExtra("bookurl",bookShelfViewAdapter.getItem(position).getBookUrl());
+                                                        startActivityByAnim(intent, R.anim.slide_in_right,R.anim.slide_out_right);
+                                                    }
+                                                    break;
+                                                    case 1: {
                                                         Intent intent = new Intent(BookshelfActivity.this,
                                                                 ChangeBookInformActivity.class);
                                                         intent.putExtra("bookurl",
                                                                 bookShelfViewAdapter.getItem(position).getBookUrl());
                                                         intent.putExtra("position", position);
+                                                        intent.putExtra("userid", user.getUserID());
                                                         startActivityForResultByAnim(intent, CHANGE_BOOK_INFOR_CODE,
                                                                 R.anim.slide_in_right, R.anim.slide_out_right);
-                                                        break;
-                                                    case 1:
+                                                    }
+                                                    break;
+                                                    case 2: {
                                                         userEntityDao.deleteBook(bookShelfViewAdapter.getItem(position));
                                                         userBookList.remove(bookShelfViewAdapter.getItem(position));
                                                         refreshDisplayBookList();
+                                                    }
+                                                    break;
                                                 }
                                             }
                                         })
@@ -389,7 +431,7 @@ public class BookshelfActivity extends mBaseActivity {
                 InputStream in = new FileInputStream(new File(filePath));
                 Book book = epubReader.readEpub(in);
                 Result result = userEntityDao.addBook(book, filePath);
-                activity.userBookList = userEntityDao.getLibrary(userEntityDao.getOrder());
+                activity.userBookList = userEntityDao.getBook(null, userEntityDao.getOrder());
                 activity.refreshDisplayBookList();
                 in.close();
                 return result;

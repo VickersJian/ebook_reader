@@ -1,6 +1,9 @@
 /* Created by Vickers Jian on 2019/08 */
 package com.vickers.ebook_reader.data.dao;
 
+import android.content.ContentValues;
+import android.util.Log;
+
 import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
 import com.vickers.ebook_reader.data.entity.UserEntity;
@@ -11,6 +14,7 @@ import org.litepal.LitePal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.ListIterator;
 
 import static com.vickers.ebook_reader.data.dao.LibraryBookEntityDao.findBook;
 import static com.vickers.ebook_reader.data.dao.UserEntityDao.findUserByUserId;
@@ -40,7 +44,7 @@ public class UserLibraryBookEntityDao {
      */
     public static Result<UserLibraryBookEntity> addUserLibraryBookEntity(UserEntity user, LibraryBookEntity book) {
         if (findUserLibraryBookEntity(user, book) == null) {
-            UserLibraryBookEntity userLibraryBookEntity = new UserLibraryBookEntity(user, book,0,getDate());
+            UserLibraryBookEntity userLibraryBookEntity = new UserLibraryBookEntity(user, book, 0, getDate());
             try {
                 userLibraryBookEntity.saveThrows();
             } catch (Exception e) {
@@ -51,13 +55,38 @@ public class UserLibraryBookEntityDao {
             return new Result.Error(new Exception("该书已存在"));
     }
 
-
-    public static void deleteUserLibraryBookEntity(UserEntity user, LibraryBookEntity book){
-        UserLibraryBookEntity userLibraryBookEntity=findUserLibraryBookEntity(user,book);
-        if(userLibraryBookEntity!=null){
-            LitePal.delete(UserLibraryBookEntity.class,userLibraryBookEntity.getId());
+    public static Result<UserLibraryBookEntity> updataUserLibraryBookEntity(UserLibraryBookEntity newUserLibraryBook) {
+        try {
+            boolean isChanged = false;
+            UserLibraryBookEntity userLibraryBookEntity = findUserLibraryBookEntity(newUserLibraryBook);
+            if (userLibraryBookEntity != null) {
+                ContentValues values = new ContentValues();
+                if (!newUserLibraryBook.getBookType().equals(userLibraryBookEntity.getBookType())) {
+                    isChanged = true;
+                    values.put("booktype", newUserLibraryBook.getBookType());
+                }
+                if (newUserLibraryBook.getBookRateOfProgress() != userLibraryBookEntity.getBookRateOfProgress()) {
+                    isChanged = true;
+                    values.put("bookrateofprogress", newUserLibraryBook.getBookRateOfProgress());
+                }
+                if (isChanged)
+                    LitePal.update(UserLibraryBookEntity.class, values, userLibraryBookEntity.getId());
+                return new Result.Success<>(newUserLibraryBook);
+            } else throw new Exception("未找到该关系");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Result.Error(e);
         }
     }
+private static final String TAG = "UserLibrary";
+
+    public static void deleteUserLibraryBookEntity(UserEntity user, LibraryBookEntity book) {
+        UserLibraryBookEntity userLibraryBookEntity = findUserLibraryBookEntity(user, book);
+        if (userLibraryBookEntity != null) {
+            LitePal.delete(UserLibraryBookEntity.class, userLibraryBookEntity.getId());
+        }
+    }
+
     /**
      * 添加用户和书籍的关联
      *
@@ -139,22 +168,49 @@ public class UserLibraryBookEntityDao {
     public void addBook(List<LibraryBookEntity> bookList) {
         List<UserLibraryBookEntity> userLibraryBookEntityList = new ArrayList<>();
         for (LibraryBookEntity book : bookList) {
-            userLibraryBookEntityList.add(new UserLibraryBookEntity(user, book,0,getDate()));
+            userLibraryBookEntityList.add(new UserLibraryBookEntity(user, book, 0, getDate()));
         }
         addUserLibraryBookEntity(userLibraryBookEntityList);
     }
 
-    public void deleteBook(LibraryBookEntity bookEntity){
-        deleteUserLibraryBookEntity(user,bookEntity);
+    public void deleteBook(LibraryBookEntity bookEntity) {
+        deleteUserLibraryBookEntity(user, bookEntity);
     }
-
 
 
     public void setProgress(int progress) {
         userLibraryBookEntity.setBookRateOfProgress(progress);
     }
 
-    private static Date getDate(){
+    private static Date getDate() {
         return new Date(System.currentTimeMillis());
     }
+
+    public static List<String> getBookTypeList(UserEntity user) {
+        List<String> bookTypeList = new ArrayList<>();
+        UserEntity userEntity;
+        if (user.getId() != 0) {
+            userEntity = user;
+        } else {
+            userEntity = findUserByUserId(user.getUserID());
+            if (userEntity == null) {
+                return bookTypeList;
+            }
+        }
+        List<UserLibraryBookEntity> userLibraryBookEntityList = LitePal.where("userentity_id = ?",
+                String.valueOf(userEntity.getId())).find(UserLibraryBookEntity.class);
+        for (UserLibraryBookEntity type : userLibraryBookEntityList) {
+            bookTypeList.add(type.getBookType());
+        }
+        //去除重复
+        ListIterator<String> it = bookTypeList.listIterator(bookTypeList.size());
+        while (it.hasPrevious()) {
+            String type = it.previous();
+            if (bookTypeList.indexOf(type) != bookTypeList.lastIndexOf(type)) {
+                it.remove();
+            }
+        }
+        return bookTypeList;
+    }
+
 }

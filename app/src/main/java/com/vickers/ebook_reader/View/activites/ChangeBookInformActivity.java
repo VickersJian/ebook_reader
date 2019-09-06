@@ -25,7 +25,11 @@ import com.vickers.ebook_reader.Helper.ImageLoadHelper;
 import com.vickers.ebook_reader.R;
 import com.vickers.ebook_reader.Base.Result;
 import com.vickers.ebook_reader.data.dao.LibraryBookEntityDao;
+import com.vickers.ebook_reader.data.dao.UserEntityDao;
+import com.vickers.ebook_reader.data.dao.UserLibraryBookEntityDao;
 import com.vickers.ebook_reader.data.entity.LibraryBookEntity;
+import com.vickers.ebook_reader.data.entity.UserEntity;
+import com.vickers.ebook_reader.data.entity.UserLibraryBookEntity;
 import com.vickers.ebook_reader.utils.FileUtils;
 import com.vickers.ebook_reader.widget.RatioImageView;
 
@@ -57,12 +61,13 @@ public class ChangeBookInformActivity extends mBaseActivity {
     private ProgressBar progressBarSaving;
     private EditText title;
     private EditText author;
+    private EditText bookType;
     private String coverUrl;
     private MutableLiveData<String> LiveDatacoverUrl = new MutableLiveData<>();
     private Button save;
     private Button cancel;
-
     private LibraryBookEntity book;
+    private UserLibraryBookEntity userLibraryBookEntity;
     private int position;
     private ImageLoadHelper imageLoadHelper;
 
@@ -78,9 +83,10 @@ public class ChangeBookInformActivity extends mBaseActivity {
         coverView = findById(R.id.image_book_cover);
         insideTitle = findById(R.id.textview_title);
         progressBar = findById(R.id.loading_cover);
-        progressBarSaving=findById(R.id.loading);
+        progressBarSaving = findById(R.id.loading);
         title = findById(R.id.edt_title);
         author = findById(R.id.edt_author);
+        bookType = findById(R.id.edt_booktype);
         save = findById(R.id.btn_save_change);
         cancel = findById(R.id.btn_cancel);
     }
@@ -90,6 +96,10 @@ public class ChangeBookInformActivity extends mBaseActivity {
         Intent intent = getIntent();
         position = intent.getIntExtra("position", -1);
         book = LibraryBookEntityDao.findBook(intent.getStringExtra("bookurl"));
+        UserEntity user = UserEntityDao.findUserByUserId(intent.getStringExtra("userid"));
+        userLibraryBookEntity = UserLibraryBookEntityDao.findUserLibraryBookEntity(user, book);
+        userLibraryBookEntity.setBook(book);
+        userLibraryBookEntity.setUser(user);
         coverUrl = book.getCoverUrl();
         LiveDatacoverUrl.setValue(coverUrl);
         LiveDatacoverUrl.observe(this, new Observer<String>() {
@@ -174,6 +184,7 @@ public class ChangeBookInformActivity extends mBaseActivity {
     private void initEditTextEvent() {
         title.setText(book.getTitle());
         author.setText(book.getAuthor());
+        bookType.setText(userLibraryBookEntity.getBookType());
     }
 
     private void initButtonEvent() {
@@ -182,7 +193,8 @@ public class ChangeBookInformActivity extends mBaseActivity {
             public void onClick(View v) {
                 if (title.getText().toString().equals(book.getTitle())
                         && author.getText().toString().equals(book.getAuthor())
-                        && coverUrl.equals(book.getCoverUrl())) {
+                        && coverUrl.equals(book.getCoverUrl())
+                        && bookType.getText().toString().equals(userLibraryBookEntity.getBookType())) {
                     finish();
                 } else {
                     book.setTitle(title.getText().toString());
@@ -199,6 +211,8 @@ public class ChangeBookInformActivity extends mBaseActivity {
                             e.printStackTrace();
                         }
                     } else book.setCoverUrl(coverUrl);
+                    userLibraryBookEntity.setBookType(bookType.getText().toString());
+                    Log.i(TAG, "onClick: "+userLibraryBookEntity.getBookType());
                     new ChangeBookTask(ChangeBookInformActivity.this).execute(book);
                 }
             }
@@ -250,30 +264,7 @@ public class ChangeBookInformActivity extends mBaseActivity {
 
         @Override
         protected Result doInBackground(LibraryBookEntity... bookEntities) {
-            try {
-                Log.i(TAG, "doInBackground: ");
-                EpubReader reader = new EpubReader();
-                InputStream in = new FileInputStream(new File(bookEntities[0].getBookUrl()));
-                Book book = reader.readEpub(in);
-                in.close();
-                Metadata metadata = new Metadata();
-                if (!bookEntities[0].getAuthor().equals("")) {
-                    Author author = new Author(bookEntities[0].getAuthor());
-                    List<Author> authorList = new ArrayList<>();
-                    authorList.add(author);
-                    metadata.setAuthors(authorList);
-                }
-                if (!bookEntities[0].getTitle().equals("")) {
-                    List<String> titleList = new ArrayList<>();
-                    titleList.add(bookEntities[0].getTitle());
-                    metadata.setTitles(titleList);
-                    book.setMetadata(metadata);
-                }
-                EpubWriter writer = new EpubWriter();
-                writer.write(book, new FileOutputStream(new File(bookEntities[0].getBookUrl())));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            UserLibraryBookEntityDao.updataUserLibraryBookEntity(activity.userLibraryBookEntity);
             LibraryBookEntity book = bookEntities[0];
             return LibraryBookEntityDao.updataBook(book);
         }

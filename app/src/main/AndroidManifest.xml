@@ -15,7 +15,8 @@
         android:supportsRtl="true"
         android:theme="@style/CAppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
-        <activity android:name=".View.activites.ReadBookActivity"></activity>
+        <activity android:name=".View.activites.ReadingSituationActivity"></activity>
+        <activity android:name=".View.activites.ReadBookActivity" />
         <activity android:name=".View.activites.ChangeBookInformActivity">
             <intent-filter>
                 <category android:name="android.intent.category.DEFAULT" />

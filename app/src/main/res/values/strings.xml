@@ -36,6 +36,7 @@
     <string name="delete">删除</string>
     <string name="title">书名</string>
     <string name="author">作者</string>
+    <string name="type" translatable="false">类型</string>
     <string name="cover">封面</string>
     <string name="save" translatable="false">保存更改</string>
     <string name="save_short" translatable="false">保存</string>
@@ -46,6 +47,10 @@
     <string name="time_order_desc">按时间降序排列</string>
     <string name="file_order_asc">按文件名升序排列</string>
     <string name="file_order_desc">按文件名降序排列</string>
+    <string name="screen">筛选</string>
+    <string name="all_type">全部</string>
     <string name="edit" translatable="false">编辑</string>
-
+    <string name="reading_situation">阅读情况</string>
+    <string name="piechart">饼状图</string>
+    <string name="barchart">柱状图</string>
 </resources>

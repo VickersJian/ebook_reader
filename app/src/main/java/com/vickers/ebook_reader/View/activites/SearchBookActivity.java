@@ -78,7 +78,7 @@ public class SearchBookActivity extends mBaseActivity {
         Intent intent = getIntent();
         user = UserEntityDao.findUserByUserId(intent.getStringExtra("userid"));
         userEntityDao = new UserEntityDao(user);
-        userBookList = userEntityDao.getLibrary(null);
+        userBookList = userEntityDao.getBook(null,userEntityDao.getOrder());
         searchResultAdapter = new BookViewAdapter();
         recyclerView.setAdapter(searchResultAdapter);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);

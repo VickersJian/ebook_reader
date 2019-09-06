@@ -66,7 +66,7 @@ public class UserEntityDao {
                         values.put("password", user.getPassword());
                     }
                     LitePal.update(UserEntity.class, values, oldUserEntity.getId());
-                    UserEntity upgraded=LitePal.find(UserEntity.class,oldUserEntity.getId());
+                    UserEntity upgraded = LitePal.find(UserEntity.class, oldUserEntity.getId());
                     return new Result.Success<>(upgraded);
                 } else throw new Exception("用户名不能为空");
             } else throw new Exception("未找到该用户信息");
@@ -160,23 +160,35 @@ public class UserEntityDao {
      *
      * @return List 用户的书籍列表
      */
-    public List<LibraryBookEntity> getLibrary(String order) {
-
-        List<UserLibraryBookEntity> userLibraryBookEntityList;
-        if (order != null && (order.equals(TIME_ASC) || order.equals(TIME_DESC))) {
-            userLibraryBookEntityList = LitePal
-                    .where("userentity_id = ?", String.valueOf(user.getId())).order(order)
-                    .find(UserLibraryBookEntity.class);
-        } else {
-            userLibraryBookEntityList = LitePal
-                    .where("userentity_id = ?", String.valueOf(user.getId()))
-                    .find(UserLibraryBookEntity.class);
-        }
+    public List<LibraryBookEntity> getBook(String type, String order) {
         List<LibraryBookEntity> Books = new ArrayList<>();
+        List<UserLibraryBookEntity> userLibraryBookEntityList;
+        boolean isTimeOrder = order.equals(TIME_ASC) || order.equals(TIME_DESC);
+        if (type != null) {
+            if (isTimeOrder) {
+                userLibraryBookEntityList = LitePal
+                        .where("userentity_id = ? and booktype = ?", String.valueOf(user.getId()), type).order(order)
+                        .find(UserLibraryBookEntity.class);
+            } else {
+                userLibraryBookEntityList = LitePal
+                        .where("userentity_id = ? and booktype = ?", String.valueOf(user.getId()), type)
+                        .find(UserLibraryBookEntity.class);
+            }
+        } else {
+            if (isTimeOrder) {
+                userLibraryBookEntityList = LitePal
+                        .where("userentity_id = ?", String.valueOf(user.getId())).order(order)
+                        .find(UserLibraryBookEntity.class);
+            } else {
+                userLibraryBookEntityList = LitePal
+                        .where("userentity_id = ?", String.valueOf(user.getId()))
+                        .find(UserLibraryBookEntity.class);
+            }
+        }
         for (UserLibraryBookEntity user_book : userLibraryBookEntityList) {
             Books.add(LitePal.find(LibraryBookEntity.class, user_book.getLibrarybookentity_id()));
         }
-        if (order != null && order.equals(FILE_DESC)) {
+        if (order.equals(FILE_DESC)) {
             Collections.sort(Books, new Comparator<LibraryBookEntity>() {
                 @Override
                 public int compare(LibraryBookEntity book1, LibraryBookEntity book2) {
@@ -185,7 +197,7 @@ public class UserEntityDao {
                 }
             });
         }
-        if (order != null && order.equals(FILE_ASC)) {
+        if (order.equals(FILE_ASC)) {
             Collections.sort(Books, new Comparator<LibraryBookEntity>() {
                 @Override
                 public int compare(LibraryBookEntity book1, LibraryBookEntity book2) {
@@ -195,6 +207,29 @@ public class UserEntityDao {
             });
         }
         return Books;
+    }
+
+    public List<String> getBookTypeList() {
+        return UserLibraryBookEntityDao.getBookTypeList(user);
+    }
+
+    public static List<LibraryBookEntity> getTypeBook(UserEntity user, String type, String order) {
+        List<LibraryBookEntity> bookList = new ArrayList<>();
+        UserEntity userEntity;
+        if (user.getId() != 0) {
+            userEntity = user;
+        } else {
+            userEntity = findUserByUserId(user.getUserID());
+            if (userEntity == null) {
+                return bookList;
+            }
+        }
+        List<UserLibraryBookEntity> userLibraryBookEntityList = LitePal.where("userentity_id = ? and booktype = ?",
+                String.valueOf(userEntity.getId()), type).find(UserLibraryBookEntity.class);
+        for (UserLibraryBookEntity book : userLibraryBookEntityList) {
+            bookList.add(LitePal.find(LibraryBookEntity.class, book.getLibrarybookentity_id()));
+        }
+        return bookList;
     }
 
     public void setOrder(String order) {

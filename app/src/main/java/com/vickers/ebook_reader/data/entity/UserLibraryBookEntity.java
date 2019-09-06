@@ -19,18 +19,21 @@ public class UserLibraryBookEntity extends LitePalSupport {
     private int BookRateOfProgress;
     private long userentity_id;
     private long librarybookentity_id;
+    private String bookType;
     private Date date;
 
     private UserEntity user;
     private LibraryBookEntity book;
 
-    private UserLibraryBookEntity(){}
+    private UserLibraryBookEntity() {
+    }
 
-    public UserLibraryBookEntity(UserEntity user, LibraryBookEntity book,int BookRateOfProgress,Date date) {
+    public UserLibraryBookEntity(UserEntity user, LibraryBookEntity book, int BookRateOfProgress, Date date) {
         this.user = user;
         this.book = book;
-        this.BookRateOfProgress=BookRateOfProgress;
-        this.date=date;
+        this.BookRateOfProgress = BookRateOfProgress;
+        this.date = date;
+        this.bookType = "未分类";
     }
 
 
@@ -61,7 +64,7 @@ public class UserLibraryBookEntity extends LitePalSupport {
         return userentity_id;
     }
 
-    public UserEntity getUser(){
+    public UserEntity getUser() {
         return user;
     }
 
@@ -81,5 +84,13 @@ public class UserLibraryBookEntity extends LitePalSupport {
     public UserLibraryBookEntity setBook(LibraryBookEntity book) {
         this.book = book;
         return this;
+    }
+
+    public String getBookType() {
+        return bookType;
+    }
+
+    public void setBookType(String bookType) {
+        this.bookType = bookType;
     }
 }

@@ -38,16 +38,16 @@ public abstract class BaseActivity extends SwipeBackActivity {
     }
 
     /**
-     * 数据初始化
+     * 控件绑定
      */
-    protected void initData() {
+    protected void bindView() {
 
     }
 
     /**
-     * 控件绑定
+     * 数据初始化
      */
-    protected void bindView() {
+    protected void initData() {
 
     }
 
